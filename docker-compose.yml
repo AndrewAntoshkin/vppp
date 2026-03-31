@@ -1,0 +1,28 @@
+services:
+  vpn:
+    build: .
+    container_name: vppp
+    restart: unless-stopped
+    cap_add:
+      - NET_ADMIN
+      - SYS_MODULE
+    sysctls:
+      - net.ipv4.ip_forward=1
+      - net.ipv4.conf.all.src_valid_mark=1
+    ports:
+      - "51820:51820/udp"
+      - "8080:8080/tcp"
+    volumes:
+      - vppp-data:/data
+      - vppp-wg:/etc/wireguard
+    environment:
+      - VPN_ENDPOINT=${VPN_ENDPOINT:?Set VPN_ENDPOINT to your server public IP or domain}
+      - API_KEY=${API_KEY:-}
+    command:
+      - "--db=/data/vppp.db"
+      - "--web=/app/web"
+      - "--wg-endpoint=${VPN_ENDPOINT}"
+
+volumes:
+  vppp-data:
+  vppp-wg:
