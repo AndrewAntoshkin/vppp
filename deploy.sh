@@ -25,6 +25,8 @@ if [ -z "$ENDPOINT" ]; then
   warn "Auto-detected public IP: $ENDPOINT"
 fi
 
+WG_PORT="${WG_PORT:-443}"
+
 log "Installing prerequisites..."
 
 if ! command -v docker &>/dev/null; then
@@ -42,12 +44,13 @@ fi
 
 log "Setting up firewall..."
 if command -v ufw &>/dev/null; then
-  ufw allow 51820/udp comment "WireGuard VPN"
+  ufw allow 22/tcp comment "SSH"
+  ufw allow "${WG_PORT}/udp" comment "WireGuard VPN"
   ufw allow 8080/tcp comment "VPN Management Panel"
   ufw --force enable || true
-  log "UFW rules added"
+  log "UFW rules added (SSH + WireGuard + Panel)"
 else
-  warn "ufw not found, skipping firewall setup. Make sure ports 51820/udp and 8080/tcp are open."
+  warn "ufw not found, skipping firewall setup. Make sure ports ${WG_PORT}/udp and 8080/tcp are open."
 fi
 
 log "Enabling IP forwarding..."
@@ -74,6 +77,7 @@ cd "$INSTALL_DIR"
 
 cat > .env <<EOF
 VPN_ENDPOINT=$ENDPOINT
+WG_PORT=$WG_PORT
 EOF
 
 log "Building and starting services..."
@@ -87,7 +91,7 @@ if docker compose ps | grep -q "running"; then
   echo ""
   log "=== Setup Complete ==="
   echo ""
-  echo "  VPN Endpoint:  $ENDPOINT:51820"
+  echo "  VPN Endpoint:  $ENDPOINT:$WG_PORT"
   echo "  Web Panel:     http://$ENDPOINT:8080"
   echo ""
   echo "  Your API key is in the container logs:"

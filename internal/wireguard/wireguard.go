@@ -148,6 +148,25 @@ func (m *Manager) saveConfig() error {
 	return nil
 }
 
+func (m *Manager) RestartInterface() error {
+	m.mu.Lock()
+	defer m.mu.Unlock()
+
+	if err := exec.Command("wg", "show", m.InterfaceName).Run(); err == nil {
+		cmd := exec.Command("wg-quick", "down", m.InterfaceName)
+		if out, err := cmd.CombinedOutput(); err != nil {
+			return fmt.Errorf("wg-quick down: %s: %w", string(out), err)
+		}
+	}
+
+	cmd := exec.Command("wg-quick", "up", m.InterfaceName)
+	if out, err := cmd.CombinedOutput(); err != nil {
+		return fmt.Errorf("wg-quick up: %s: %w", string(out), err)
+	}
+
+	return nil
+}
+
 func AllocateIP(baseNetwork string, usedIPs []string) (string, error) {
 	_, network, err := net.ParseCIDR(baseNetwork)
 	if err != nil {

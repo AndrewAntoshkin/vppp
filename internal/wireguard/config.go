@@ -10,12 +10,13 @@ const clientConfigTemplate = `[Interface]
 PrivateKey = {{ .PrivateKey }}
 Address = {{ .Address }}
 DNS = {{ .DNS }}
+MTU = 1280
 
 [Peer]
 PublicKey = {{ .ServerPublicKey }}
 PresharedKey = {{ .PresharedKey }}
 Endpoint = {{ .Endpoint }}:{{ .Port }}
-AllowedIPs = 0.0.0.0/0, ::/0
+AllowedIPs = 0.0.0.0/0
 PersistentKeepalive = 25
 `
 

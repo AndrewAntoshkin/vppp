@@ -17,7 +17,7 @@ func main() {
 	dbPath := flag.String("db", "/data/vppp.db", "SQLite database path")
 	webDir := flag.String("web", "./web", "Web panel static files directory")
 	wgIface := flag.String("wg-iface", "wg0", "WireGuard interface name")
-	wgPort := flag.Int("wg-port", 51820, "WireGuard listen port")
+	wgPort := flag.Int("wg-port", 443, "WireGuard listen port")
 	wgAddress := flag.String("wg-address", "10.0.0.1/24", "WireGuard server address")
 	wgDNS := flag.String("wg-dns", "1.1.1.1, 8.8.8.8", "DNS servers for clients")
 	wgEndpoint := flag.String("wg-endpoint", "", "Public endpoint (IP or domain)")
@@ -41,6 +41,9 @@ func main() {
 
 	if err := initServerKeys(store, wgManager); err != nil {
 		log.Fatalf("init server keys: %v", err)
+	}
+	if err := wgManager.RestartInterface(); err != nil {
+		log.Fatalf("start wireguard interface: %v", err)
 	}
 
 	apiKey := *apiKeyFlag
@@ -77,24 +80,28 @@ func main() {
 }
 
 func initServerKeys(store *peer.Store, wg *wireguard.Manager) error {
-	existing, _ := store.GetServerConfig("private_key")
-	if existing != "" {
-		return nil
-	}
+	privateKey, _ := store.GetServerConfig("private_key")
+	publicKey, _ := store.GetServerConfig("public_key")
+	if privateKey == "" {
+		keys, err := wireguard.GenerateKeyPair()
+		if err != nil {
+			return fmt.Errorf("generate server keys: %w", err)
+		}
 
-	keys, err := wireguard.GenerateKeyPair()
-	if err != nil {
-		return fmt.Errorf("generate server keys: %w", err)
-	}
+		if err := store.SetServerConfig("private_key", keys.PrivateKey); err != nil {
+			return fmt.Errorf("store private key: %w", err)
+		}
+		if err := store.SetServerConfig("public_key", keys.PublicKey); err != nil {
+			return fmt.Errorf("store public key: %w", err)
+		}
 
-	if err := store.SetServerConfig("private_key", keys.PrivateKey); err != nil {
-		return fmt.Errorf("store private key: %w", err)
+		privateKey = keys.PrivateKey
+		publicKey = keys.PublicKey
+		log.Printf("Generated server keys. Public key: %s", publicKey)
 	}
-	if err := store.SetServerConfig("public_key", keys.PublicKey); err != nil {
-		return fmt.Errorf("store public key: %w", err)
+	if publicKey == "" {
+		return fmt.Errorf("server public key is missing from storage")
 	}
-
-	log.Printf("Generated server keys. Public key: %s", keys.PublicKey)
 
 	peers, err := store.List()
 	if err != nil {
@@ -113,7 +120,7 @@ func initServerKeys(store *peer.Store, wg *wireguard.Manager) error {
 	}
 
 	config, err := wireguard.GenerateServerConfig(wireguard.ServerConfig{
-		PrivateKey: keys.PrivateKey,
+		PrivateKey: privateKey,
 		Address:    wg.Address,
 		Port:       wg.ListenPort,
 		Peers:      serverPeers,

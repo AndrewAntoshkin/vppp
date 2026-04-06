@@ -32,6 +32,7 @@ func (h *Handler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 }
 
 func (h *Handler) registerRoutes() {
+	h.mux.HandleFunc("/healthz", h.handleHealth)
 	h.mux.HandleFunc("/api/peers", h.handlePeers)
 	h.mux.HandleFunc("/api/peers/", h.handlePeerByID)
 	h.mux.HandleFunc("/api/status", h.handleStatus)
@@ -341,6 +342,15 @@ func (h *Handler) handleServerInfo(w http.ResponseWriter, r *http.Request) {
 		"dns":         h.wg.DNS,
 	}
 	jsonResponse(w, info, http.StatusOK)
+}
+
+func (h *Handler) handleHealth(w http.ResponseWriter, r *http.Request) {
+	if r.Method != http.MethodGet {
+		http.Error(w, `{"error":"method not allowed"}`, http.StatusMethodNotAllowed)
+		return
+	}
+
+	jsonResponse(w, map[string]string{"status": "ok"}, http.StatusOK)
 }
 
 func jsonResponse(w http.ResponseWriter, data interface{}, status int) {

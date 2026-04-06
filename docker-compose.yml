@@ -10,7 +10,7 @@ services:
       - net.ipv4.ip_forward=1
       - net.ipv4.conf.all.src_valid_mark=1
     ports:
-      - "51820:51820/udp"
+      - "${WG_PORT:-443}:${WG_PORT:-443}/udp"
       - "8080:8080/tcp"
     volumes:
       - vppp-data:/data
@@ -18,10 +18,18 @@ services:
     environment:
       - VPN_ENDPOINT=${VPN_ENDPOINT:?Set VPN_ENDPOINT to your server public IP or domain}
       - API_KEY=${API_KEY:-}
+      - WG_PORT=${WG_PORT:-443}
     command:
       - "--db=/data/vppp.db"
       - "--web=/app/web"
       - "--wg-endpoint=${VPN_ENDPOINT}"
+      - "--wg-port=${WG_PORT:-443}"
+    healthcheck:
+      test: ["CMD-SHELL", "wget -qO- http://127.0.0.1:8080/healthz >/dev/null || exit 1"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+      start_period: 15s
 
 volumes:
   vppp-data:

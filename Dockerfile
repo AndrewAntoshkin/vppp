@@ -16,11 +16,14 @@ RUN apk add --no-cache wireguard-tools iptables ip6tables
 
 COPY --from=builder /vppp-server /usr/local/bin/vppp-server
 COPY --from=builder /vpn-cli /usr/local/bin/vpn-cli
+COPY entrypoint.sh /entrypoint.sh
 COPY web/ /app/web/
+
+RUN chmod +x /usr/local/bin/vppp-server /usr/local/bin/vpn-cli /entrypoint.sh
 
 VOLUME ["/data", "/etc/wireguard"]
 
-EXPOSE 51820/udp 8080/tcp
+EXPOSE 443/udp 8080/tcp
 
-ENTRYPOINT ["/usr/local/bin/vppp-server"]
+ENTRYPOINT ["/entrypoint.sh"]
 CMD ["--db", "/data/vppp.db", "--web", "/app/web"]

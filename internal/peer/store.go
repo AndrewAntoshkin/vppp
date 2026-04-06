@@ -5,7 +5,7 @@ import (
 	"fmt"
 	"time"
 
-	_ "github.com/mattn/go-sqlite3"
+	_ "modernc.org/sqlite"
 )
 
 type Store struct {
@@ -13,7 +13,7 @@ type Store struct {
 }
 
 func NewStore(dbPath string) (*Store, error) {
-	db, err := sql.Open("sqlite3", dbPath+"?_journal_mode=WAL")
+	db, err := sql.Open("sqlite", dbPath+"?_pragma=journal_mode(WAL)")
 	if err != nil {
 		return nil, fmt.Errorf("open database: %w", err)
 	}
