@@ -1,19 +1,9 @@
-FROM golang:1.26-alpine AS builder
-
-WORKDIR /src
-COPY go.mod go.sum ./
-RUN go mod download
-
-COPY . .
-RUN CGO_ENABLED=0 go build -o /vppp-server ./cmd/server
-RUN CGO_ENABLED=0 go build -o /vpn-cli ./cmd/cli
-
 FROM alpine:3.20
 
 RUN apk add --no-cache wireguard-tools iptables ip6tables
 
-COPY --from=builder /vppp-server /usr/local/bin/vppp-server
-COPY --from=builder /vpn-cli /usr/local/bin/vpn-cli
+COPY vppp-server-linux /usr/local/bin/vppp-server
+COPY vpn-cli-linux /usr/local/bin/vpn-cli
 COPY entrypoint.sh /entrypoint.sh
 COPY web/ /app/web/
 
